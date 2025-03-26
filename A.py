@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 
-def detect_circles(image, dp=1.2, min_dist=20, param1=50, param2=30, min_radius=0, max_radius=0):
+def detect_circles(image, dp=1.2, min_dist=20, param1=50, param2=30, min_radius=17, max_radius=17):
     """
     Detect circles in a grayscale image using HoughCircles.
     Returns a list of circles with (x, y, r) coordinates.
