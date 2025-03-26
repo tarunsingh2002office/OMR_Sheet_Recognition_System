@@ -28,13 +28,21 @@ def main():
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        original_height, original_width = image_rgb.shape[:2]
         
         # Step 2: Ask for options a, b, c
         option = st.radio("Select an option", ("a", "b", "c"))
         
         if option == "a":
             st.write("Option A selected: Please draw a rectangle to select the region in the image.")
-            # Step 3: Open image in Streamlit using drawable canvas
+            
+            # Calculate scaled canvas dimensions
+            max_canvas_width = 800  # Adjust this value as needed
+            scaling_factor = max_canvas_width / original_width
+            canvas_width = max_canvas_width
+            canvas_height = int(original_height * scaling_factor)
+            
+            # Step 3: Open image in Streamlit using drawable canvas with zoom/pan
             canvas_result = st_canvas(
                 fill_color="rgba(255, 165, 0, 0.3)",
                 stroke_width=3,
@@ -42,10 +50,13 @@ def main():
                 background_color="#eee",
                 background_image=Image.fromarray(image_rgb),
                 update_streamlit=True,
-                height=image_rgb.shape[0],
-                width=image_rgb.shape[1],
+                height=canvas_height,
+                width=canvas_width,
                 drawing_mode="rect",
                 key="canvas",
+                display_toolbar= True
+                # allow_zoom=True,  # Enable zoom
+                # allow_pan=True,   # Enable pan
             )
             
             # Once the user draws a rectangle, process it
@@ -53,22 +64,28 @@ def main():
                 objects = canvas_result.json_data.get("objects", [])
                 if objects:
                     rect = objects[0]
-                    left = int(rect.get("left", 0))
-                    top = int(rect.get("top", 0))
-                    width_rect = int(rect.get("width", 0))
-                    height_rect = int(rect.get("height", 0))
+                    # Scale coordinates back to original image size
+                    left = int(rect.get("left", 0) / scaling_factor)
+                    top = int(rect.get("top", 0) / scaling_factor)
+                    width_rect = int(rect.get("width", 0) / scaling_factor)
+                    height_rect = int(rect.get("height", 0) / scaling_factor)
                     
-                    st.write(f"Selected region - Left: {left}, Top: {top}, Width: {width_rect}, Height: {height_rect}")
+                    st.write(f"Selected region - Left: {left:.1f}, Top: {top:.1f}, Width: {width_rect:.1f}, Height: {height_rect:.1f}")
                     
                     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-                    selected_region = gray[top:top+height_rect, left:left+width_rect]
+                    # Ensure coordinates are within image boundaries
+                    top = max(0, int(top))
+                    left = max(0, int(left))
+                    bottom = min(gray.shape[0], top + int(height_rect))
+                    right = min(gray.shape[1], left + int(width_rect))
+                    selected_region = gray[top:bottom, left:right]
                     
                     circles = detect_circles(selected_region)
                     
                     output_image = image_rgb.copy()
                     circle_data = []
                     
-                    if circles is not None and len(circles) > 0:  # Modified condition
+                    if circles is not None and len(circles) > 0:
                         for (x, y, r) in circles:
                             full_x = x + left
                             full_y = y + top
