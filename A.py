@@ -1,14 +1,11 @@
 import streamlit as st
 import cv2
+import json
 import numpy as np
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 
 def detect_circles(image, dp=1.2, min_dist=20, param1=50, param2=30, min_radius=17, max_radius=17):
-    """
-    Detect circles in a grayscale image using HoughCircles.
-    Returns a list of circles with (x, y, r) coordinates.
-    """
     circles = cv2.HoughCircles(
         image, cv2.HOUGH_GRADIENT, dp, minDist=min_dist,
         param1=param1, param2=param2, minRadius=min_radius, maxRadius=max_radius
@@ -54,9 +51,7 @@ def main():
                 width=canvas_width,
                 drawing_mode="rect",
                 key="canvas",
-                display_toolbar= True
-                # allow_zoom=True,  # Enable zoom
-                # allow_pan=True,   # Enable pan
+                display_toolbar=True
             )
             
             # Once the user draws a rectangle, process it
@@ -95,6 +90,17 @@ def main():
                     st.write("Detected circles (with coordinates in the full image):")
                     st.write(circle_data)
                     st.image(output_image, caption="Detected circles", use_column_width=True)
+                    
+                    # Convert circle data to JSON format
+                    json_data = json.dumps(circle_data, indent=4)
+                    
+                    # Add a download button for the JSON file
+                    st.download_button(
+                        label="Download Circle Coordinates as JSON",
+                        data=json_data,
+                        file_name="circle_coordinates.json",
+                        mime="application/json"
+                    )
         else:
             st.write("Option b or c selected, nothing to do.")
 
